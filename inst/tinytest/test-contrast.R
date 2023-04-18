@@ -61,6 +61,9 @@ contr <- tidy(comparisons(mod))
 expect_equivalent(contr$estimate[1], pred$estimate[pred$cyl == 6] - pred$estimate[pred$cyl == 4])
 expect_equivalent(contr$estimate[2], pred$estimate[pred$cyl == 8] - pred$estimate[pred$cyl == 4])
 
+predpop <- predictions(mod)
+contrpop <- tidy(comparisons(mod, variables = list(cyl = "popreference")))
+expect_equivalent(contrpop$estimate, mean(predpop$estimate) - pred$estimate[pred$cyl == 4])
 
 # emmeans w/ back-transforms is similar to comparisons with direct delta method
 tol <- 1e-4
