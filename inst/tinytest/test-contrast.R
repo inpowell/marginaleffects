@@ -62,8 +62,14 @@ expect_equivalent(contr$estimate[1], pred$estimate[pred$cyl == 6] - pred$estimat
 expect_equivalent(contr$estimate[2], pred$estimate[pred$cyl == 8] - pred$estimate[pred$cyl == 4])
 
 predpop <- predictions(mod)
-contrpop <- tidy(comparisons(mod, variables = list(cyl = "popreference")))
+contrpop <- tidy(avg_comparisons(mod, variables = list(cyl = "popreference")))
 expect_equivalent(contrpop$estimate, mean(predpop$estimate) - pred$estimate[pred$cyl == 4])
+
+contrlog1mpaf <- tidy(avg_comparisons(mod, variables = list(cyl = "popreference"), comparison = 'lnratioavg'))
+expect_equivalent(contrlog1mpaf$estimate, log(mean(predpop$estimate) / pred$estimate[pred$cyl == 4]))
+
+contrpaf <- tidy(avg_comparisons(mod, variables = list(cyl = "popreference"), comparison = 'lnratioavg', transform = \(x) -expm1(-x)))
+expect_equivalent(contrpaf$estimate, (mean(predpop$estimate) - pred$estimate[pred$cyl == 4]) / mean(predpop$estimate))
 
 # emmeans w/ back-transforms is similar to comparisons with direct delta method
 tol <- 1e-4
