@@ -227,7 +227,7 @@ sanitize_variables <- function(variables,
 
         } else {
             if (calling_function == "comparisons") {
-                valid <- c("reference", "sequential", "pairwise", "all")
+                valid <- c("reference", "sequential", "pairwise", "all", "popreference")
                 # minmax needs an actual factor in the original data to guarantee correct order of levels.
                 if (is.factor(modeldata[[v]])) { 
                     valid <- c(valid, "minmax")
@@ -287,7 +287,7 @@ sanitize_variables <- function(variables,
         }
 
         # weights if user requests `avg` or automatically switched
-        if (isTRUE(grepl("avg$", comparison)) && "marginaleffects_wts_internal" %in% colnames(newdata)) {
+        if (isTRUE(grepl("avg$", comparison)) || "marginaleffects_wts_internal" %in% colnames(newdata)) {
             comparison <- paste0(comparison, "wts")
         }
 

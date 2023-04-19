@@ -103,7 +103,9 @@ cjdt <- function(dtlist) {
     Reduce(function(DT1, DT2) cbind(DT1, DT2[rep(1:.N, each = nrow(DT1))]), dtlist)
 }
 
-
+cbindlist <- function(dtlist) {
+    do.call('cbind', dtlist)
+}
 
 # recurse up. mostly useful for `tinytest`
 # this is dumb, but it's late and i don't feel like thinking about this

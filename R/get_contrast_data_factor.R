@@ -43,8 +43,12 @@ get_contrast_data_factor <- function(model,
         } else {
             levs_idx <- data.table::data.table(lo = levs[1], hi = levs)
         }
+        joinfunc <- cjdt
+        origcopy <- nrow(levs_idx)
     } else if (isTRUE(variable$value == "minmax")) {
         levs_idx <- data.table::data.table(lo = levs[1], hi = levs[length(levs)])
+        joinfunc <- cjdt
+        origcopy <- nrow(levs_idx)
     } else if (isTRUE(variable$value == "pairwise")) {
         levs_idx <- CJ(lo = levs, hi = levs, sorted = FALSE)
         # null contrasts are interesting with interactions
@@ -52,10 +56,19 @@ get_contrast_data_factor <- function(model,
             levs_idx <- levs_idx[levs_idx$hi != levs_idx$lo, ]
             levs_idx <- levs_idx[match(levs_idx$lo, levs) < match(levs_idx$hi, levs), ]
         }
+        joinfunc <- cjdt
+        origcopy <- nrow(levs_idx)
     } else if (isTRUE(variable$value == "all")) {
         levs_idx <- CJ(lo = levs, hi = levs, sorted = FALSE)
+        joinfunc <- cjdt
     } else if (isTRUE(variable$value == "sequential")) {
         levs_idx <- data.table::data.table(lo = levs[1:(length(levs) - 1)], hi = levs[2:length(levs)])
+        joinfunc <- cjdt
+        origcopy <- nrow(levs_idx)
+    } else if (isTRUE(variable$value == "popreference")) {
+        levs_idx <- data.table::data.table(lo = levs[1], hi = newdata[[variable$name]])
+        joinfunc <- cbindlist
+        origcopy <- 1L
     } else if (length(variable$value) == 2) {
         if (is.character(variable$value)) {
             tmp <- modeldata[[variable$name]]
@@ -77,6 +90,8 @@ get_contrast_data_factor <- function(model,
         } else {
             levs_idx <- data.table::data.table(lo = variable$value[1], hi = variable$value[2])
         }
+        joinfunc <- cjdt
+        origcopy <- nrow(levs_idx)
     }
 
     # internal option applied to the first of several contrasts when
@@ -91,17 +106,23 @@ get_contrast_data_factor <- function(model,
     }
 
     levs_idx$isNULL <- levs_idx$hi == levs_idx$lo
-    levs_idx$label <- suppressWarnings(tryCatch(
-        sprintf(variable$label, levs_idx$hi, levs_idx$lo),
-        error = function(e) variable$label))
+    if (isTRUE(variable$value == "popreference")) {
+        levs_idx$label <- suppressWarnings(tryCatch(
+            sprintf(variable$label, "<Population>", levs_idx$lo),
+            error = function(e) variable$label))
+    } else {
+        levs_idx$label <- suppressWarnings(tryCatch(
+            sprintf(variable$label, levs_idx$hi, levs_idx$lo),
+            error = function(e) variable$label))
+    }
     levs_idx <- stats::setNames(levs_idx, paste0("marginaleffects_contrast_", colnames(levs_idx)))
     if (!"marginaleffects_contrast_label" %in% colnames(levs_idx) || all(levs_idx$marginaleffects_contrast_label == "custom")) {
         levs_idx[, "marginaleffects_contrast_label" := paste0(marginaleffects_contrast_hi, ", ", marginaleffects_contrast_lo)]
     }
 
-    lo <- hi <- cjdt(list(newdata, levs_idx))
+    lo <- hi <- joinfunc(list(newdata, levs_idx))
 
-    original <- data.table::rbindlist(rep(list(newdata), nrow(levs_idx)))
+    original <- data.table::rbindlist(rep(list(newdata), origcopy))
 
     if (is.factor(newdata[[variable$name]]) || isTRUE(convert_to_factor)) {
         lo[[variable$name]] <- factor(lo[["marginaleffects_contrast_lo"]], levels = levs)
